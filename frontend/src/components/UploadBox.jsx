@@ -1,5 +1,5 @@
-import ProbabilityMeter from "./ProbabilityMeter"
 import { useState } from "react"
+import ProbabilityMeter from "./ProbabilityMeter"
 
 function UploadBox() {
 
@@ -66,6 +66,12 @@ function UploadBox() {
         onDrop={handleDrop}
       >
 
+        {file && (
+          <p className="text-green-400 text-sm break-words mb-3">
+            Uploaded: {file.name}
+          </p>
+        )}
+
         <p className="text-gray-300">
           Drag & Drop media here
         </p>
@@ -81,12 +87,6 @@ function UploadBox() {
         />
 
       </div>
-
-      {file && (
-        <p className="text-green-400 text-sm">
-          Uploaded: {file.name}
-        </p>
-      )}
 
       {preview && (
 
@@ -138,28 +138,10 @@ function UploadBox() {
             {result.label}
           </p>
 
-          {result && (
-  <div className="bg-slate-700 p-4 rounded-lg mt-4">
-
-    <h2 className="text-lg font-semibold">
-      Detection Result
-    </h2>
-
-    <p className={`text-xl font-bold mt-2 ${
-      result.label === "Fake"
-        ? "text-red-400"
-        : "text-green-400"
-    }`}>
-      {result.label}
-    </p>
-
-    <ProbabilityMeter
-      label={result.label}
-      confidence={result.confidence}
-    />
-
-  </div>
-)}
+          <ProbabilityMeter
+            label={result.label}
+            confidence={result.confidence}
+          />
 
         </div>
       )}
