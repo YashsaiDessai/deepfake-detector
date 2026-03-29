@@ -37,7 +37,7 @@ Backend (planned):
 Clone the repository
 
 ```
-git clone <repo-link>
+git clone https://github.com/YashsaiDessai/deepfake-detector
 cd deepfake-detector/frontend
 ```
 
