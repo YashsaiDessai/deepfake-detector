@@ -2,7 +2,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useState, createContext, useContext } from 'react'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
-import Dashboard from './pages/Dashboard'
+import Home from './pages/Home'
+import PhotoDetection from './pages/PhotoDetection'
+import AudioDetection from './pages/AudioDetection'
 
 // Auth Context
 export const AuthContext = createContext(null)
@@ -33,17 +35,26 @@ function App() {
         <Routes>
           <Route
             path="/login"
-            element={user ? <Navigate to="/dashboard" /> : <Login />}
+            element={user ? <Navigate to="/home" /> : <Login />}
           />
           <Route
             path="/signup"
-            element={user ? <Navigate to="/dashboard" /> : <Signup />}
+            element={user ? <Navigate to="/home" /> : <Signup />}
           />
           <Route
-            path="/dashboard"
-            element={user ? <Dashboard /> : <Navigate to="/login" />}
+            path="/home"
+            element={user ? <Home /> : <Navigate to="/login" />}
           />
-          <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
+          <Route
+            path="/photo-detection"
+            element={user ? <PhotoDetection /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/audio-detection"
+            element={user ? <AudioDetection /> : <Navigate to="/login" />}
+          />
+          <Route path="/dashboard" element={<Navigate to="/home" />} />
+          <Route path="*" element={<Navigate to={user ? "/home" : "/login"} />} />
         </Routes>
       </Router>
     </AuthContext.Provider>
