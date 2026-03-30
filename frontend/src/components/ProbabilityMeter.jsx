@@ -1,33 +1,26 @@
 function ProbabilityMeter({ label, confidence }) {
-
   const percentage = Number(confidence)
-
-  const color =
-    label === "Fake"
-      ? "bg-red-500"
-      : "bg-green-500"
+  const isReal = label !== 'Fake'
 
   return (
-    <div className="mt-4">
-
-      <div className="flex justify-between text-sm mb-1">
-        <span>Real</span>
-        <span>Fake</span>
+    <div style={{ marginTop: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '8px' }}>
+        <span style={{ color: 'var(--text-secondary)', fontWeight: 500, fontFamily: "'Poppins',sans-serif" }}>Confidence</span>
+        <span style={{
+          fontWeight: 700,
+          color: isReal ? '#4ade80' : '#f87171',
+          fontFamily: "'Courier Prime',monospace",
+          fontSize: '1rem'
+        }}>
+          {confidence}%
+        </span>
       </div>
-
-      <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
-
-        <div
-          className={`${color} h-4 transition-all duration-700`}
-          style={{ width: `${percentage}%` }}
-        />
-
+      <div className="progress-track">
+        <div className={`progress-fill ${isReal ? 'fill-green' : 'fill-red'}`} style={{ width: `${percentage}%` }} />
       </div>
-
-      <p className="text-center mt-2 text-gray-300">
-        Confidence: {confidence}%
-      </p>
-
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+        <span>0%</span><span>50%</span><span>100%</span>
+      </div>
     </div>
   )
 }
