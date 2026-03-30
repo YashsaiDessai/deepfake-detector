@@ -26,3 +26,61 @@ A premium AI Deepfake & Voice Detection Platform built with Flutter.
    ```
 
 Enjoy the Realio application!
+
+---
+
+# Deepfake & Voice Detection UI (Legacy/Web Version)
+
+A web-based interface for detecting AI-generated deepfake media and synthetic voices.
+This project provides a simple and interactive dashboard where users can upload images, videos, or audio files and analyze them for possible manipulation using AI models.
+
+## Features
+
+* Drag and drop media upload
+* Supports **image, video, and audio files**
+* Media preview before analysis
+* AI-based deepfake detection result display
+* Real vs Fake **confidence probability meter**
+* Clean modern UI built with Tailwind CSS
+* React-based component architecture
+
+## Tech Stack
+
+Frontend:
+
+* React
+* Tailwind CSS
+* Vite
+
+Backend (planned):
+
+* Python
+* FastAPI
+* Deepfake detection models (PyTorch / TensorFlow)
+
+## Installation
+
+Clone the repository
+
+```
+git clone https://github.com/YashsaiDessai/deepfake-detector
+cd deepfake-detector/frontend
+```
+
+Install dependencies
+
+```
+npm install
+```
+
+Run the development server
+
+```
+npm run dev
+```
+
+Open the app in your browser at
+
+```
+http://localhost:5173
+```
