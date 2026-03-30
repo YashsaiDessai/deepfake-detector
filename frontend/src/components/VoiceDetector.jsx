@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, Mic, MicOff, X, Sparkles, CheckCircle2, AlertTriangle, AlertOctagon, AudioLines, FileAudio, ChevronDown, ChevronUp, Download, RotateCcw, Timer } from 'lucide-react'
+import { Upload, Mic, MicOff, X, Sparkles, CheckCircle2, AlertTriangle, AlertOctagon, AudioLines, FileAudio, ChevronDown, ChevronUp, Download, RotateCcw, Timer, Link2, ArrowRight } from 'lucide-react'
 import ConfidenceRing from './ConfidenceRing'
 
 function VoiceDetector() {
@@ -13,6 +13,9 @@ function VoiceDetector() {
   const [recordTime, setRecordTime] = useState(0)
   const [showDetails, setShowDetails] = useState(false)
   const [waveData, setWaveData] = useState(Array(32).fill(0.15))
+  const [urlInput, setUrlInput] = useState('')
+  const [urlError, setUrlError] = useState('')
+  const [sourceType, setSourceType] = useState(null)
   const mediaRecorderRef = useRef(null)
   const timerRef = useRef(null)
   const analyzerRef = useRef(null)
@@ -37,7 +40,22 @@ function VoiceDetector() {
     setPreview(URL.createObjectURL(selectedFile))
     setResult(null)
     setShowDetails(false)
+    setSourceType('file')
+    setUrlInput('')
+    setUrlError('')
   }, [])
+
+  const handleUrlSubmit = () => {
+    const url = urlInput.trim()
+    if (!url) { setUrlError('Please enter a URL'); return }
+    try { new URL(url) } catch { setUrlError('Please enter a valid URL'); return }
+    setUrlError('')
+    setFile({ name: url.length > 60 ? url.slice(0, 57) + '...' : url, type: 'audio/mpeg', size: 0, isUrl: true, url })
+    setPreview(url)
+    setResult(null)
+    setShowDetails(false)
+    setSourceType('url')
+  }
 
   const handleDrop = (e) => {
     e.preventDefault()
@@ -125,9 +143,12 @@ function VoiceDetector() {
     setPreview(null)
     setResult(null)
     setShowDetails(false)
+    setSourceType(null)
+    setUrlInput('')
+    setUrlError('')
   }
 
-  const fileSize = file ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' : ''
+  const fileSize = file ? (file.isUrl ? 'URL' : (file.size / (1024 * 1024)).toFixed(2) + ' MB') : ''
   const formatTime = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
   const verdictConfig = {
@@ -195,6 +216,38 @@ function VoiceDetector() {
               <Mic size={18} />
               Record Voice
             </button>
+
+            {/* URL Input */}
+            <div className="divider" style={{ margin: '22px 0' }}>
+              <span>or paste an audio link</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div className="input-icon-wrap" style={{ flex: 1 }}>
+                <Link2 size={18} className="icon-l" />
+                <input
+                  type="url"
+                  className="input-field"
+                  placeholder="https://example.com/audio.mp3"
+                  value={urlInput}
+                  onChange={(e) => { setUrlInput(e.target.value); setUrlError('') }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleUrlSubmit()}
+                  id="voice-url-input"
+                />
+              </div>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ padding: '12px 22px', flexShrink: 0 }}
+                onClick={handleUrlSubmit}
+                disabled={!urlInput.trim()}
+              >
+                <ArrowRight size={18} />
+              </button>
+            </div>
+            {urlError && (
+              <p style={{ fontSize: '0.78rem', color: '#f87171', marginTop: '6px' }}>{urlError}</p>
+            )}
           </motion.div>
         )}
 
@@ -254,9 +307,9 @@ function VoiceDetector() {
         {/* File loaded */}
         {file && !recording && (
           <motion.div key="content" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
-            {/* File Info */}
+            {/* File/URL Info */}
             <div className="file-info">
-              <CheckCircle2 size={16} style={{ color: '#4ade80', flexShrink: 0 }} />
+              {sourceType === 'url' ? <Link2 size={16} style={{ color: '#4ade80', flexShrink: 0 }} /> : <CheckCircle2 size={16} style={{ color: '#4ade80', flexShrink: 0 }} />}
               <span style={{ flex: 1 }}>{file.name}</span>
               <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', flexShrink: 0 }}>{fileSize}</span>
               <button onClick={clearFile} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', flexShrink: 0 }} aria-label="Remove">

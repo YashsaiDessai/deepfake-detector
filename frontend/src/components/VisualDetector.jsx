@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, Image, Film, X, Sparkles, CheckCircle2, AlertTriangle, AlertOctagon, ChevronDown, ChevronUp, Download, RotateCcw } from 'lucide-react'
+import { Upload, Image, Film, X, Sparkles, CheckCircle2, AlertTriangle, AlertOctagon, ChevronDown, ChevronUp, Download, RotateCcw, Link2, ArrowRight } from 'lucide-react'
 import ConfidenceRing from './ConfidenceRing'
 
 function VisualDetector() {
@@ -11,6 +11,9 @@ function VisualDetector() {
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [showDetails, setShowDetails] = useState(false)
+  const [urlInput, setUrlInput] = useState('')
+  const [urlError, setUrlError] = useState('')
+  const [sourceType, setSourceType] = useState(null) // 'file' or 'url'
 
   const handleFile = useCallback((selectedFile) => {
     if (!selectedFile) return
@@ -19,7 +22,28 @@ function VisualDetector() {
     setPreview(URL.createObjectURL(selectedFile))
     setResult(null)
     setShowDetails(false)
+    setSourceType('file')
+    setUrlInput('')
+    setUrlError('')
   }, [])
+
+  const handleUrlSubmit = () => {
+    const url = urlInput.trim()
+    if (!url) { setUrlError('Please enter a URL'); return }
+    try { new URL(url) } catch { setUrlError('Please enter a valid URL'); return }
+    setUrlError('')
+    // Detect type from URL extension for preview
+    const ext = url.split('?')[0].split('.').pop().toLowerCase()
+    const videoExts = ['mp4', 'webm', 'avi', 'mov', 'mkv']
+    const imgExts = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp']
+    const isVideo = videoExts.includes(ext) || url.includes('youtube') || url.includes('youtu.be') || url.includes('vimeo')
+    const isImg = imgExts.includes(ext)
+    setFile({ name: url.length > 60 ? url.slice(0, 57) + '...' : url, type: isVideo ? 'video/mp4' : isImg ? 'image/png' : 'video/mp4', size: 0, isUrl: true, url })
+    setPreview(url)
+    setResult(null)
+    setShowDetails(false)
+    setSourceType('url')
+  }
 
   const handleDrop = (e) => {
     e.preventDefault()
@@ -72,9 +96,12 @@ function VisualDetector() {
     setResult(null)
     setProgress(0)
     setShowDetails(false)
+    setSourceType(null)
+    setUrlInput('')
+    setUrlError('')
   }
 
-  const fileSize = file ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' : ''
+  const fileSize = file ? (file.isUrl ? 'URL' : (file.size / (1024 * 1024)).toFixed(2) + ' MB') : ''
 
   const verdictConfig = {
     authentic: { icon: <CheckCircle2 size={24} />, color: '#4ade80', bg: 'result-real', badge: 'verdict-authentic', text: '✓ AUTHENTIC', desc: 'This media appears to be genuine and unmanipulated.' },
@@ -149,6 +176,38 @@ function VisualDetector() {
               </p>
               <input type="file" id="visual-input" accept="image/*,video/*" onChange={(e) => handleFile(e.target.files[0])} style={{ display: 'none' }} />
             </div>
+
+            {/* URL Input */}
+            <div className="divider" style={{ margin: '22px 0' }}>
+              <span>or paste a video / image link</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div className="input-icon-wrap" style={{ flex: 1 }}>
+                <Link2 size={18} className="icon-l" />
+                <input
+                  type="url"
+                  className="input-field"
+                  placeholder="https://example.com/video.mp4"
+                  value={urlInput}
+                  onChange={(e) => { setUrlInput(e.target.value); setUrlError('') }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleUrlSubmit()}
+                  id="visual-url-input"
+                />
+              </div>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ padding: '12px 22px', flexShrink: 0 }}
+                onClick={handleUrlSubmit}
+                disabled={!urlInput.trim()}
+              >
+                <ArrowRight size={18} />
+              </button>
+            </div>
+            {urlError && (
+              <p style={{ fontSize: '0.78rem', color: '#f87171', marginTop: '6px' }}>{urlError}</p>
+            )}
           </motion.div>
         )}
 
@@ -159,9 +218,9 @@ function VisualDetector() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
           >
-            {/* File Info */}
+            {/* File/URL Info */}
             <div className="file-info">
-              <CheckCircle2 size={16} style={{ color: '#4ade80', flexShrink: 0 }} />
+              {sourceType === 'url' ? <Link2 size={16} style={{ color: '#4ade80', flexShrink: 0 }} /> : <CheckCircle2 size={16} style={{ color: '#4ade80', flexShrink: 0 }} />}
               <span style={{ flex: 1 }}>{file.name}</span>
               <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', flexShrink: 0 }}>{fileSize}</span>
               <button onClick={clearFile} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', flexShrink: 0 }} aria-label="Remove">
@@ -172,8 +231,15 @@ function VisualDetector() {
             {/* Preview */}
             {preview && (
               <div className="media-preview">
-                {file.type.startsWith('image') && <img src={preview} alt="Preview" />}
-                {file.type.startsWith('video') && <video src={preview} controls />}
+                {file.type.startsWith('image') && <img src={preview} alt="Preview" onError={(e) => { e.target.style.display = 'none' }} />}
+                {file.type.startsWith('video') && !file.isUrl && <video src={preview} controls />}
+                {file.type.startsWith('video') && file.isUrl && (
+                  <div style={{ padding: '24px', textAlign: 'center' }}>
+                    <Film size={40} style={{ color: 'var(--purple-400)', marginBottom: '10px' }} />
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Video link loaded</p>
+                    <p className="font-mono" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '6px', wordBreak: 'break-all' }}>{file.url}</p>
+                  </div>
+                )}
               </div>
             )}
 
