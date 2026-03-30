@@ -1,153 +1,194 @@
 import { useRef, useMemo, useState, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useGLTF, OrbitControls } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 
-// Preload the model for better performance
-useGLTF.preload('/models/barack_obama.glb')
+/**
+ * HumanFaceGeometry - Creates a realistic human face mesh with distinct features
+ */
+function createHumanFaceGeometry() {
+  const geometry = new THREE.BufferGeometry()
+  const vertices = []
+  const indices = []
+
+  // Create a smooth, realistic human head using parametric ellipsoid
+  const segments = 48
+  const rings = 40
+  const faceWidth = 1.0
+  const faceHeight = 1.3
+  const faceDepth = 0.85
+  
+  for (let ring = 0; ring <= rings; ring++) {
+    const v = ring / rings
+    const phi = Math.PI * v
+    const sinPhi = Math.sin(phi)
+    const cosPhi = Math.cos(phi)
+    
+    for (let seg = 0; seg <= segments; seg++) {
+      const u = seg / segments
+      const theta = Math.PI * 2 * u
+      const sinTheta = Math.sin(theta)
+      const cosTheta = Math.cos(theta)
+      
+      // Create smooth, realistic head proportions
+      let x = faceWidth * cosTheta * sinPhi
+      let y = faceHeight * cosPhi - 0.1 // Slightly centered
+      let z = faceDepth * sinTheta * sinPhi
+      
+      // Subtle cheek indentation
+      if (Math.abs(sinTheta) > 0.3 && Math.abs(sinTheta) < 0.7) {
+        if (cosPhi > 0.2 && cosPhi < 0.7) {
+          z *= 0.92 // Very subtle
+        }
+      }
+      
+      // Chin tapering
+      if (cosPhi < -0.1) {
+        x *= 0.85
+        z *= 0.8
+      }
+      
+      // Forehead rounding
+      if (cosPhi > 0.8) {
+        x *= 0.95
+      }
+      
+      vertices.push(x, y, z)
+    }
+  }
+
+  // Create faces
+  for (let ring = 0; ring < rings; ring++) {
+    for (let seg = 0; seg < segments; seg++) {
+      const a = ring * (segments + 1) + seg
+      const b = a + 1
+      const c = a + segments + 1
+      const d = c + 1
+
+      indices.push(a, c, b)
+      indices.push(b, c, d)
+    }
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(
+    new Float32Array(vertices),
+    3
+  ))
+  geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1))
+  geometry.computeVertexNormals()
+
+  return geometry
+}
 
 /**
- * ParticleModel Component - Renders a particle system from a loaded 3D model
+ * AnimatedScanLines - Creates animated horizontal scan lines
  */
-function ParticleModel({ modelPath }) {
-  const groupRef = useRef(null)
-  const [hasError, setHasError] = useState(false)
-  const gltf = useGLTF(modelPath, true)
+function AnimatedScanLines() {
+  const scanRef = useRef(null)
 
-  // Convert mesh to particle system
-  const particleSystem = useMemo(() => {
-    if (!gltf.scene) return null
-
-    try {
-      let geometry = null
-
-      // Extract geometry from the scene
-      gltf.scene.traverse((child) => {
-        if (child.isMesh && !geometry) {
-          geometry = child.geometry.clone()
-        }
-      })
-
-      if (!geometry) {
-        throw new Error('No mesh found in model')
-      }
-
-      // Get positions or create from vertices
-      let positions
-      if (geometry.attributes.position) {
-        positions = geometry.attributes.position.array
-      } else {
-        positions = geometry.vertices
-          ? new Float32Array(
-              geometry.vertices.flatMap((v) => [v.x, v.y, v.z])
-            )
-          : null
-      }
-
-      if (!positions || positions.length === 0) {
-        throw new Error('No valid positions in geometry')
-      }
-
-      // Create buffer geometry from positions
-      const particleGeometry = new THREE.BufferGeometry()
-      particleGeometry.setAttribute(
-        'position',
-        new THREE.BufferAttribute(positions, 3)
-      )
-
-      // Create material with cyan glow
-      const particleMaterial = new THREE.PointsMaterial({
-        color: new THREE.Color(0x00ffff),
-        size: 0.08,
-        sizeAttenuation: true,
-        transparent: true,
-        opacity: 0.8,
-        emissive: new THREE.Color(0x00ffff),
-        emissiveIntensity: 0.5,
-      })
-
-      return { geometry: particleGeometry, material: particleMaterial }
-    } catch (error) {
-      console.error('Error creating particle system:', error)
-      setHasError(true)
-      return null
-    }
-  }, [gltf.scene])
-
-  // Rotation animation
-  useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y += 0.0015
-      groupRef.current.rotation.x += 0.0005
+  useFrame(({ clock }) => {
+    if (scanRef.current) {
+      // Sweep scan line down from top to bottom
+      scanRef.current.position.y = 1.3 - ((clock.elapsedTime * 2) % 2.6)
     }
   })
 
-  if (hasError || !particleSystem) {
-    return <WireframeSphere />
-  }
-
   return (
-    <group ref={groupRef}>
-      <points
-        geometry={particleSystem.geometry}
-        material={particleSystem.material}
-      />
+    <group ref={scanRef}>
+      <line>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={2}
+            array={new Float32Array([-1.2, 0, 0.9, 1.2, 0, 0.9])}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color={0x00ffff} transparent opacity={0.85} linewidth={2} fog={false} />
+      </line>
     </group>
   )
 }
 
 /**
- * WireframeSphere Component - Fallback when model fails to load
+ * HumanFaceMesh Component - Renders a procedural human face with scan lines
  */
-function WireframeSphere() {
-  const meshRef = useRef(null)
+function HumanFaceMesh() {
+  const groupRef = useRef(null)
+  const faceRef = useRef(null)
 
-  useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += 0.0015
-      meshRef.current.rotation.x += 0.0005
+  const { faceGeometry, edges } = useMemo(() => {
+    const geom = createHumanFaceGeometry()
+    const edgeGeom = new THREE.EdgesGeometry(geom, 20)
+    return { faceGeometry: geom, edges: edgeGeom }
+  }, [])
+
+  // Rotation and animation
+  useFrame(({ clock }) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y += 0.002
+      groupRef.current.rotation.x = Math.sin(clock.elapsedTime * 0.4) * 0.12
+    }
+
+    // Pulsing glow effect
+    if (faceRef.current && faceRef.current.material) {
+      faceRef.current.material.emissiveIntensity = 0.2 + Math.sin(clock.elapsedTime * 2) * 0.1
     }
   })
 
   return (
-    <mesh ref={meshRef}>
-      <icosahedronGeometry args={[2, 5]} />
-      <meshPhongMaterial
-        color={0x00ffff}
-        wireframe={true}
-        transparent={true}
-        opacity={0.8}
-        emissive={0x00ffff}
-        emissiveIntensity={0.3}
-      />
-    </mesh>
+    <group ref={groupRef}>
+      {/* Main face mesh */}
+      <mesh ref={faceRef} geometry={faceGeometry}>
+        <meshPhongMaterial
+          color={0x00ffff}
+          emissive={0x00ffff}
+          emissiveIntensity={0.2}
+          wireframe={false}
+          transparent={true}
+          opacity={0.95}
+          shininess={120}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* Wireframe lines overlay for facial definition */}
+      <lineSegments geometry={edges}>
+        <lineBasicMaterial color={0x00ffff} transparent opacity={0.4} linewidth={1} />
+      </lineSegments>
+
+      {/* Animated scan lines - sweeping down */}
+      <AnimatedScanLines />
+    </group>
   )
 }
 
 /**
  * Scene Component - Sets up the Three.js scene with lights and camera
  */
-function Scene({ modelPath }) {
+function Scene() {
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.6} color={0x00ffff} />
-      <pointLight position={[10, 10, 10]} intensity={1.2} color={0x00ffff} />
-      <pointLight
-        position={[-10, -10, 10]}
-        intensity={0.6}
-        color={0xff00ff}
-      />
+      {/* Primary key light */}
+      <pointLight position={[8, 10, 8]} intensity={1.2} color={0x00ffff} />
+      {/* Fill light */}
+      <pointLight position={[-6, 5, 6]} intensity={0.5} color={0xff00ff} />
+      {/* Back light for definition */}
+      <pointLight position={[0, -8, -8]} intensity={0.4} color={0x00ff88} />
+      {/* Ambient for overall visibility */}
+      <ambientLight intensity={0.3} color={0x00ffff} />
 
-      {/* Model or Fallback */}
-      <ParticleModel modelPath={modelPath} />
+      {/* Face Mesh */}
+      <HumanFaceMesh />
 
       {/* Camera Controls */}
       <OrbitControls
         enableZoom={false}
         enablePan={false}
         autoRotate={true}
-        autoRotateSpeed={2}
+        autoRotateSpeed={1.2}
+        minPolarAngle={Math.PI * 0.35}
+        maxPolarAngle={Math.PI * 0.65}
       />
     </>
   )
@@ -155,14 +196,14 @@ function Scene({ modelPath }) {
 
 /**
  * FaceMesh Component - Main component to display 3D hologram
- * Renders a 3D particle face hologram with loading state
+ * Renders a procedural human face with scan line effects
  */
-export default function FaceMesh({ modelPath = '/models/barack_obama.glb' }) {
+export default function FaceMesh() {
   const [isLoading, setIsLoading] = useState(true)
   const containerRef = useRef(null)
 
   useEffect(() => {
-    // Simulate minimal loading delay to allow canvas to mount
+    // Minimal loading delay to allow canvas to mount
     const timer = setTimeout(() => setIsLoading(false), 300)
     return () => clearTimeout(timer)
   }, [])
@@ -200,24 +241,13 @@ export default function FaceMesh({ modelPath = '/models/barack_obama.glb' }) {
               preserveDrawingBuffer: false,
               powerPreference: 'high-performance',
             }}
-            camera={{ position: [0, 0, 5], fov: 50, near: 0.1, far: 1000 }}
-            className="w-full h-full"
-            style={{ background: 'transparent' }}
-            dpr={Math.min(window.devicePixelRatio, 2)}
+            camera={{ position: [0, 0, 3.5], fov: 45 }}
+            style={{ width: '100%', height: '100%' }}
           >
-            <Scene modelPath={modelPath} />
+            <color attach="background" args={['#0a0e27']} />
+            <Scene />
           </Canvas>
         )}
-      </div>
-
-      {/* Info text below hologram */}
-      <div className="text-center mt-6">
-        <p className="text-cyan-400 text-sm font-medium tracking-widest">
-          ✦ 3D FACE ANALYSIS HOLOGRAM ✦
-        </p>
-        <p className="text-gray-400 text-xs mt-2">
-          Real-time deepfake detection powered by neural networks
-        </p>
       </div>
     </div>
   )
