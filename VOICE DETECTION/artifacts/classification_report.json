@@ -1,0 +1,42 @@
+{
+  "Real": {
+    "precision": 0.9835526315789473,
+    "recall": 0.9966666666666667,
+    "f1-score": 0.9900662251655629,
+    "support": 600.0
+  },
+  "Synthesized": {
+    "precision": 0.9966216216216216,
+    "recall": 0.9833333333333333,
+    "f1-score": 0.9899328859060402,
+    "support": 600.0
+  },
+  "accuracy": 0.99,
+  "macro avg": {
+    "precision": 0.9900871266002844,
+    "recall": 0.99,
+    "f1-score": 0.9899995555358015,
+    "support": 1200.0
+  },
+  "weighted avg": {
+    "precision": 0.9900871266002844,
+    "recall": 0.99,
+    "f1-score": 0.9899995555358015,
+    "support": 1200.0
+  },
+  "confidence_stats": {
+    "n_test_samples": 1200,
+    "mean_max_confidence": 0.9507437499999999,
+    "max_confidence_percentiles": {
+      "p10": 0.8572500000000001,
+      "p50": 0.985,
+      "p90": 1.0
+    },
+    "mean_max_confidence_correct": 0.9537626262626264,
+    "mean_max_confidence_incorrect": 0.651875,
+    "mean_max_confidence_per_predicted_class": {
+      "Real": 0.9438322368421052,
+      "Synthesized": 0.9578420608108108
+    }
+  }
+}

@@ -1,0 +1,23 @@
+# datasets
+dataset/
+data/
+
+# model weights
+*.pth
+*.pt
+*.h5
+
+# archives
+*.rar
+*.zip
+
+# python
+venv/
+__pycache__/
+*.pyc
+
+
+model/datasets/
+model/weights/
+model/venv/
+node_modules/
